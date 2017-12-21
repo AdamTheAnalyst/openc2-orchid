@@ -1,69 +1,136 @@
-<div>
-<h1>README</h1>
 
-<div>
-<h2><a id="readme-general">OASIS Open Repository: openc2-orchid</a></h2>
+[![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://pypi.python.org/pypi/hug/)
 
-<p>This GitHub public repository ( <b><a href="https://github.com/oasis-open/openc2-orchid">https://github.com/oasis-open/openc2-orchid</a></b> ) was created at the request of the <a href="https://www.oasis-open.org/committees/openc2/">OASIS Open Command and Control (OpenC2) TC</a> as an <a href="https://www.oasis-open.org/resources/open-repositories/">OASIS Open Repository</a> to support development of open source resources related to Technical Committee work.</p>
+# OrchID - Orchestrator for Intelligent Defence
 
-<p>While this Open Repository remains associated with the sponsor TC, its development priorities, leadership, intellectual property terms, participation rules, and other matters of governance are <a href="https://github.com/oasis-open/openc2-orchid/blob/master/CONTRIBUTING.md#governance-distinct-from-oasis-tc-process">separate and distinct</a> from the OASIS TC Process and related policies.</p>
+***
 
-<p>All contributions made to this Open Repository are subject to open source license terms expressed in the <a href="https://www.oasis-open.org/sites/www.oasis-open.org/files/Apache-LICENSE-2.0.txt">Apache License v 2.0</a>.  That license was selected as the declared <a href="https://www.oasis-open.org/resources/open-repositories/licenses">"Applicable License"</a> when the Open Repository was created.</p>
+OrchID is an OpenC2 proxy built in Django 1.10.2. OrchID aims to provide a simple, modular API to begin accepting OpenC2 commands and converting them into Python actions.
 
-<p>As documented in <a href="https://github.com/oasis-open/openc2-orchid/blob/master/CONTRIBUTING.md#public-participation-invited">"Public Participation Invited</a>", contributions to this OASIS Open Repository are invited from all parties, whether affiliated with OASIS or not.  Participants must have a GitHub account, but no fees or OASIS membership obligations are required.  Participation is expected to be consistent with the <a href="https://www.oasis-open.org/policies-guidelines/open-repositories">OASIS Open Repository Guidelines and Procedures</a>, the open source <a href="https://github.com/oasis-open/openc2-orchid/blob/master/LICENSE">LICENSE</a> designated for this particular repository, and the requirement for an <a href="https://www.oasis-open.org/resources/open-repositories/cla/individual-cla">Individual Contributor License Agreement</a> that governs intellectual property.</p>
+## Setup
+---
+In it's current state it is a fairly light-weight Django app with few dependencies,
 
-</div>
+```sh
+pip install requests
+pip install django==1.10.2
+pip install jsonschema
+```
+OrchID does not currently use a database backend, however later revisions will use one for storing user credentials when I add authentication, so it's best to set one up now. The project comes shipped with the settings necessary for setting up MySQL, but any Django database engine should work fine, you will just need to create a database called "orchid" and a user to connect to it.
 
-<div>
-<h2><a id="purposeStatement">Statement of Purpose</a></h2>
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'orchid',
+        'USER': '',
+        'PASSWORD': '',
+        'HOST': 'localhost',   # Or an IP Address that your DB is hosted on
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        }
+    }
+}
+```
 
-<p>Statement of Purpose for this OASIS Open Repository (openc2-orchid) as <a href="https://drive.google.com/open?id=0B-FunCZrr-vtOXBEX0ZwTjZXY2M">proposed</a> and <a href="https://www.oasis-open.org/committees/ballot.php?id=3115">approved</a> [<a href="https://issues.oasis-open.org/browse/TCADMIN-2743">bis</a>] by the TC:</p>
+For future reference you may also need to run the following when I get started adding the database functions:
 
-<p>The purpose of the Orchestrator for Intelligent Defense (openc2-orchid) GitHub repository is to (a) create a simple, modular application programming interface to accept OpenC2 commands and convert them to python actions, and (b)provision a codebase to enable other prototype efforts.</p>
+```python
+python manage.py makemigrations
+python manage.py migrate
+```
 
-<p>Orchid is an OpenC2 proxy built in Django 1.10.2. Orchid aims to provide a simple, modular API to begin accepting OpenC2 commands and converting them into Python actions.</p>
+## Get Started
+---
+OrchID runs with the standard runserver command:
 
-<p>The initial codebase is imported from the OpenC2 Forum's Github repository.</p>
+```python
+python manage.py runserver 0.0.0.0:8000
+```
 
-</div>
+This project is a fully-fledged deployment, but the "orchid" folder should stand alone as an importable django app if you want to use it in your project.
 
-<div><h2><a id="purposeClarifications">Additions to Statement of Purpose</a></h2>
+Once running, an OpenC2 POST endpoint will be available on `http://<your_ip>/openc2/`. A sample collection of working JSON objects to test sending to the server can be found in ./orchid/samples. 
 
-<p>Repository Maintainers may include here any clarifications &mdash; any additional sections, subsections, and paragraphs that the Maintainer(s) wish to add as descriptive text, reflecting (sub-) project status, milestones, releases, modifications to statement of purpose, etc.  The project Maintainers will create and maintain this content on behalf of the participants.</p>
-</div>
+When the server initialises it loads all profiles specified in the "OPENC2_PROFILES" Django setting, each profile contains a subroutines for handling OpenC2 actions. These routines register which OpenC2 messages they can handle with the use of the @openc2_action decorator. Example profiles for process-dns-service, network-firewall and a notification profile have been included. Custom specifiers must be handled within the subroutine (see the example_process_firewall_juniper.py for an example of this).
 
-<div>
-<h2><a id="maintainers">Maintainers</a></h2>
+## Custom Config
+---
+OrchID uses the Django settings fill to get information about the actuators it can connect to, currently there are these two:
 
-<p>Open Repository <a href="https://www.oasis-open.org/resources/open-repositories/maintainers-guide">Maintainers</a> are responsible for oversight of this project's community development activities, including evaluation of GitHub <a href="https://github.com/oasis-open/openc2-orchid/blob/master/CONTRIBUTING.md#fork-and-pull-collaboration-model">pull requests</a> and <a href="https://www.oasis-open.org/policies-guidelines/open-repositories#repositoryManagement">preserving</a> open source principles of openness and fairness. Maintainers are recognized and trusted experts who serve to implement community goals and consensus design preferences.</p>
+### OPENC2 Controlled BIND DNS Servers
+```python
+OPENC2_BIND_DNS_SERVERS = [
+    {
+                    'hostname':'dns_server_1',
+                    'ip':'10.10.10.1',
+                    'username':'bind_user',
+                    'password':'bind_password',
+    },
+    {
+                    'hostname':'dns_server_2',
+                    'ip':'10.10.10.2',
+                    'username':'bind_user',
+                    'password':'bind_password',
+    }
+]
+```
 
-<p>Initially, the associated TC members have designated one or more persons to serve as Maintainer(s); subsequently, participating community members may select additional or substitute Maintainers, per <a href="https://www.oasis-open.org/resources/open-repositories/maintainers-guide#additionalMaintainers">consensus agreements</a>.</p>
+### OPENC2 Controlled Juniper Firewalls
+```python
+OPENC2_JUNIPER_FIREWALLS = [
+    {
+                    'hostname':'r1_juniper',
+                    'ip':'10.10.10.1',
+                    'version':'SSG5',
+                    'public_interfaces':[
+                            {"fe-0/0/0":"0.0.0.0/0"},
+                        ],
+                    'internal_interfaces':[
+                            {"fe-0/1/0":"192.168.1.0/24"}
+                    ],
+                    'username':'juniper_user',
+                    'password':'juniper_password',
+    },
+    {
+                    'hostname':'r2_juniper',
+                    'ip':'10.10.10.2',
+                    'version':'SRX',
+                    'public_interfaces':[
+                            {"fe-0/0/0":"0.0.0.0/0"},
+                        ],
+                    'internal_interfaces':[
+                            {"fe-0/1/0":"192.168.1.0/24"}
+                    ],
+                    'username':'juniper_user',
+                    'password':'juniper_password',
+    }
+]
+```
 
-<p><b><a id="currentMaintainers">Current Maintainers of this Open Repository</a></b></p>
+These are just to showcase how I envision it working, as no actuator logic is implemented to perform actions on vendor appliances (profiles just print to the console log currently). You can leave these in until you are confident enough to start writing your own profiles.
 
-<ul>
-<li><a href="mailto:dpkemp@radium.ncsc.mil">Dave Kemp</a>; GitHub ID: <a href="https://github.com/davaya">https://github.com/davaya</a>; WWW: <a href="http://www.nsa.gov/">Department of Defense</a></li>
+## Testing
+---
 
-<li><a href="mailto:adam.bradbury@zepko.com">Adam Bradbury</a>; GitHub ID: <a href="https://github.com/AdamTheAnalyst">https://github.com/AdamTheAnalyst</a>; WWW: <a href="http://www.zepko.com/">Zepko</a></li>
+I have added two unit tests; they check that JSON samples in the `./sample` folder are syntactically valid, then pass them through the command dispatcher. The tests fail if the dispatcher doesn't return a `200` _(OK)_ status code. Tests can be run with:
 
-</ul>
+```python
+python manage.py test orchid
+```
 
-</div>
+## Thanks
 
-<div><h2><a id="aboutOpenRepos">About OASIS Open Repositories</a></h2>
+---
 
-<p><ul>
-<li><a href="https://www.oasis-open.org/resources/open-repositories/">Open Repositories: Overview and Resources</a></li>
-<li><a href="https://www.oasis-open.org/resources/open-repositories/faq">Frequently Asked Questions</a></li>
-<li><a href="https://www.oasis-open.org/resources/open-repositories/licenses">Open Source Licenses</a></li>
-<li><a href="https://www.oasis-open.org/resources/open-repositories/cla">Contributor License Agreements (CLAs)</a></li>
-<li><a href="https://www.oasis-open.org/resources/open-repositories/maintainers-guide">Maintainers' Guidelines and Agreement</a></li>
-</ul></p>
+Large portions of this project are based on the [Yuuki] project by Joshua Brulé. Without Yuuki this project would not exist, as Josh solved some of the fundamental design problems in making OpenC2 proxies a reality. Thanks for kicking down the door for us all Josh.
 
-</div>
+Also a big thanks to everyone in the OpenC2 community, on conference calls and on Slack, you have always been helpful when I have struggled with understanding components of OpenC2 and I look forward to shaping the future of defence with you all.
 
-<div><h2><a id="feedback">Feedback</a></h2>
+[Yuuki]: <https://github.com/OpenC2-org/openc2-yuuki>
 
-<p>Questions or comments about this Open Repository's activities should be composed as GitHub issues or comments. If use of an issue/comment is not possible or appropriate, questions may be directed by email to the Maintainer(s) <a href="#currentMaintainers">listed above</a>.  Please send general questions about Open Repository participation to OASIS Staff at <a href="mailto:repository-admin@oasis-open.org">repository-admin@oasis-open.org</a> and any specific CLA-related questions to <a href="mailto:repository-cla@oasis-open.org">repository-cla@oasis-open.org</a>.</p>
 
-</div></div>
+
+
+
